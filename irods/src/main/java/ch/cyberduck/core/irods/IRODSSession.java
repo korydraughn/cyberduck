@@ -33,6 +33,7 @@ import ch.cyberduck.core.features.Home;
 import ch.cyberduck.core.features.Move;
 import ch.cyberduck.core.features.Read;
 import ch.cyberduck.core.features.Touch;
+import ch.cyberduck.core.features.Upload;
 import ch.cyberduck.core.features.Write;
 import ch.cyberduck.core.proxy.ProxyFinder;
 import ch.cyberduck.core.shared.DefaultPathHomeFeature;
@@ -190,9 +191,12 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         if(type == Move.class) {
             return (T) new IRODSMoveFeature(this);
         }
-        if(type == Write.class) {
-            return (T) new IRODSWriteFeature(this);
+        if (type == Upload.class) {
+            return (T) new IRODSUploadFeature(this);
         }
+//        if(type == Write.class) {
+//            return (T) new IRODSWriteFeature(this);
+//        }
         if(type == Touch.class) {
             return (T) new IRODSTouchFeature(this);
         }

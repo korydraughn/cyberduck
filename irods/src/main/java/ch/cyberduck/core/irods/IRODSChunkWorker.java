@@ -15,6 +15,8 @@ package ch.cyberduck.core.irods;
  * GNU General Public License for more details.
  */
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.irods.irods4j.high_level.io.IRODSDataObjectInputStream;
 import org.irods.irods4j.high_level.io.IRODSDataObjectOutputStream;
 import org.irods.irods4j.high_level.io.IRODSDataObjectStream;
@@ -25,8 +27,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.channels.FileChannel;
 
 public class IRODSChunkWorker implements Runnable {
+
+    private static final Logger log = LogManager.getLogger(IRODSChunkWorker.class);
 
     private final InputStream in;
     private final OutputStream out;
@@ -35,11 +40,16 @@ public class IRODSChunkWorker implements Runnable {
     private final byte[] buffer;
 
     public IRODSChunkWorker(InputStream in, OutputStream out, long offset, long chunkSize, int bufferSize) {
+        log.info("constructing iRODS chunk worker.");
+        log.info("offset      = [{}]", offset);
+        log.info("chunk size  = [{}]", chunkSize);
+        log.info("buffer size = [{}]", bufferSize);
         this.in = in;
         this.out = out;
         this.offset = offset;
         this.chunkSize = chunkSize;
         this.buffer = new byte[bufferSize];
+        log.info("iRODS chunk worker constructed.");
     }
 
     @Override
@@ -53,16 +63,21 @@ public class IRODSChunkWorker implements Runnable {
                 int count = (int) Math.min(buffer.length, remaining);
 
                 int bytesRead = in.read(buffer, 0, count);
+                log.info("read [{}] of [{}] requested bytes from input stream.", bytesRead, count);
                 if(-1 == bytesRead) {
                     break;
                 }
 
                 out.write(buffer, 0, bytesRead);
+                log.info("wrote [{}] bytes to output stream.", bytesRead);
                 remaining -= bytesRead;
             }
+
+            log.info("total bytes remaining = [{}]", remaining);
+            log.info("done. wrote [{}] of [{}] bytes to the replica.", chunkSize - remaining, chunkSize);
         }
         catch(IOException | IRODSException e) {
-            // TODO Log error
+            log.error(e.getMessage());
         }
     }
 
@@ -70,18 +85,18 @@ public class IRODSChunkWorker implements Runnable {
         if(in instanceof IRODSDataObjectInputStream) {
             IRODSDataObjectInputStream stream = (IRODSDataObjectInputStream) in;
             long totalOffset = offset;
+            log.info("input stream: total offset = [{}]", totalOffset);
             while(totalOffset > 0) {
-                if(totalOffset >= Integer.MAX_VALUE) {
-                    totalOffset -= Integer.MAX_VALUE;
-                    stream.seek(Integer.MAX_VALUE, IRODSDataObjectStream.SeekDirection.CURRENT);
-                }
-                else {
-                    stream.seek((int) totalOffset, IRODSDataObjectStream.SeekDirection.CURRENT);
-                }
+                long intermediateOffset = Math.min(totalOffset, Integer.MAX_VALUE);
+                totalOffset -= intermediateOffset;
+                log.info("input stream: offsetting by [{}]. remaining offset = [{}]", intermediateOffset, totalOffset);
+                stream.seek((int) intermediateOffset, IRODSDataObjectStream.SeekDirection.CURRENT);
             }
         }
         else if(in instanceof FileInputStream) {
-            ((FileInputStream) in).getChannel().position(offset);
+            log.info("input stream: seeking to position [{}]", offset);
+            FileChannel fc = ((FileInputStream) in).getChannel().position(offset);
+            log.info("input stream: position = [{}]", fc.position());
         }
     }
 
@@ -89,18 +104,18 @@ public class IRODSChunkWorker implements Runnable {
         if(out instanceof IRODSDataObjectOutputStream) {
             IRODSDataObjectOutputStream stream = (IRODSDataObjectOutputStream) out;
             long totalOffset = offset;
+            log.info("output stream: total offset = [{}]", totalOffset);
             while(totalOffset > 0) {
-                if(totalOffset >= Integer.MAX_VALUE) {
-                    totalOffset -= Integer.MAX_VALUE;
-                    stream.seek(Integer.MAX_VALUE, IRODSDataObjectStream.SeekDirection.CURRENT);
-                }
-                else {
-                    stream.seek((int) totalOffset, IRODSDataObjectStream.SeekDirection.CURRENT);
-                }
+                long intermediateOffset = Math.min(totalOffset, Integer.MAX_VALUE);
+                totalOffset -= intermediateOffset;
+                log.info("output stream: offsetting by [{}]. remaining offset = [{}]", intermediateOffset, totalOffset);
+                stream.seek((int) intermediateOffset, IRODSDataObjectStream.SeekDirection.CURRENT);
             }
         }
         else if(out instanceof FileOutputStream) {
-            ((FileOutputStream) out).getChannel().position(offset);
+            log.info("output stream: seeking to position [{}]", offset);
+            FileChannel fc = ((FileOutputStream) out).getChannel().position(offset);
+            log.info("output stream: position = [{}]", fc.position());
         }
     }
 }
