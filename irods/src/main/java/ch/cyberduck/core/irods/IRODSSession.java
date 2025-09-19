@@ -52,11 +52,16 @@ import org.irods.irods4j.authentication.PamInteractiveAuthPlugin;
 import org.irods.irods4j.authentication.PamPasswordAuthPlugin;
 import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.connection.QualifiedUsername;
+import org.irods.irods4j.low_level.api.IRODSApi;
 import org.irods.irods4j.low_level.api.IRODSApi.ConnectionOptions;
 
 import java.text.MessageFormat;
 
 public class IRODSSession extends SSLSession<IRODSConnection> {
+
+    static {
+        IRODSApi.setApplicationName("Cyberduck");
+    }
 
     public IRODSSession(final Host h) {
         super(h, new DisabledX509TrustManager(), new DefaultX509KeyManager());
