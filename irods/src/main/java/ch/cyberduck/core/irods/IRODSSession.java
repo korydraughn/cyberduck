@@ -28,13 +28,15 @@ import ch.cyberduck.core.features.AttributesFinder;
 import ch.cyberduck.core.features.Copy;
 import ch.cyberduck.core.features.Delete;
 import ch.cyberduck.core.features.Directory;
+import ch.cyberduck.core.features.Download;
 import ch.cyberduck.core.features.Find;
 import ch.cyberduck.core.features.Home;
 import ch.cyberduck.core.features.Move;
 import ch.cyberduck.core.features.Read;
 import ch.cyberduck.core.features.Touch;
 import ch.cyberduck.core.features.Upload;
-import ch.cyberduck.core.features.Write;
+import ch.cyberduck.core.preferences.HostPreferencesFactory;
+import ch.cyberduck.core.preferences.PreferencesReader;
 import ch.cyberduck.core.proxy.ProxyFinder;
 import ch.cyberduck.core.shared.DefaultPathHomeFeature;
 import ch.cyberduck.core.shared.DelegatingHomeFeature;
@@ -191,12 +193,12 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         if(type == Move.class) {
             return (T) new IRODSMoveFeature(this);
         }
+        if (type == Download.class) {
+            return (T) new IRODSDownloadFeature(this);
+        }
         if (type == Upload.class) {
             return (T) new IRODSUploadFeature(this);
         }
-//        if(type == Write.class) {
-//            return (T) new IRODSWriteFeature(this);
-//        }
         if(type == Touch.class) {
             return (T) new IRODSTouchFeature(this);
         }
@@ -211,6 +213,5 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         }
         return super._getFeature(type);
     }
-
 
 }
