@@ -87,11 +87,14 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                     IRODSDataObjectOutputStream out = new IRODSDataObjectOutputStream(
                             session.getClient().getRcComm(), logicalPath, truncate, append)) {
                     while(true) {
+                        status.validate(); // Throws if transfer is cancelled.
                         int bytesRead = in.read(buffer);
                         if(bytesRead == -1) {
                             break;
                         }
+                        streamListener.recv(bytesRead);
                         out.write(buffer, 0, bytesRead);
+                        streamListener.sent(bytesRead);
                     }
                 }
 
@@ -119,6 +122,8 @@ public class IRODSUploadFeature implements Upload<Checksum> {
 
             log.info("launching connection pool with [{}] connections.", threadCount);
             try(IRODSConnectionPool pool = new IRODSConnectionPool(threadCount)) {
+                status.validate(); // Throws if transfer is cancelled.
+
                 IRODSConnectionUtils.startIRODSConnectionPool(session, pool);
                 log.info("connection pool started.");
 
@@ -152,6 +157,8 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                         }
                     }
 
+                    status.validate(); // Throws if transfer is cancelled.
+
                     // Holds handles to tasks running on the thread pool. This allows us to wait for
                     // all tasks to complete before shutting down everything.
                     List<Future<?>> tasks = new ArrayList<>();
@@ -160,6 +167,8 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                     log.info("launch parallel IO tasks.");
                     for(int i = 0; i < threadCount; ++i) {
                         tasks.add(executor.submit(new IRODSChunkWorker(
+                                status,
+                                streamListener,
                                 localFileStreams.get(i),
                                 irodsStreams.get(i),
                                 i * chunkSize,

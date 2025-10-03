@@ -15,6 +15,10 @@ package ch.cyberduck.core.irods;
  * GNU General Public License for more details.
  */
 
+import ch.cyberduck.core.exception.ConnectionCanceledException;
+import ch.cyberduck.core.io.StreamListener;
+import ch.cyberduck.core.transfer.TransferStatus;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.irods.irods4j.high_level.io.IRODSDataObjectInputStream;
@@ -33,17 +37,21 @@ public class IRODSChunkWorker implements Runnable {
 
     private static final Logger log = LogManager.getLogger(IRODSChunkWorker.class);
 
+    private final TransferStatus status;
+    private final StreamListener streamListener;
     private final InputStream in;
     private final OutputStream out;
     private final long offset;
     private final long chunkSize;
     private final byte[] buffer;
 
-    public IRODSChunkWorker(InputStream in, OutputStream out, long offset, long chunkSize, int bufferSize) {
+    public IRODSChunkWorker(TransferStatus status, StreamListener streamListener, InputStream in, OutputStream out, long offset, long chunkSize, int bufferSize) {
         log.info("constructing iRODS chunk worker.");
         log.info("offset      = [{}]", offset);
         log.info("chunk size  = [{}]", chunkSize);
         log.info("buffer size = [{}]", bufferSize);
+        this.status = status;
+        this.streamListener = streamListener;
         this.in = in;
         this.out = out;
         this.offset = offset;
@@ -60,6 +68,14 @@ public class IRODSChunkWorker implements Runnable {
 
             long remaining = chunkSize;
             while(remaining > 0) {
+                try {
+                    status.validate();
+                }
+                catch(ConnectionCanceledException e) {
+                    log.info("transfer cancelled.");
+                    return;
+                }
+
                 int count = (int) Math.min(buffer.length, remaining);
 
                 int bytesRead = in.read(buffer, 0, count);
@@ -68,8 +84,10 @@ public class IRODSChunkWorker implements Runnable {
                     break;
                 }
 
+                streamListener.recv(bytesRead);
                 out.write(buffer, 0, bytesRead);
                 log.info("wrote [{}] bytes to output stream.", bytesRead);
+                streamListener.sent(bytesRead);
                 remaining -= bytesRead;
             }
 

@@ -120,6 +120,8 @@ public class IRODSDownloadFeature implements Download {
 
                     // Launch the first IO task.
                     tasks.add(executor.submit(new IRODSChunkWorker(
+                            status,
+                            listener,
                             primaryStream,
                             localFileStreams.get(0),
                             0,
@@ -134,6 +136,8 @@ public class IRODSDownloadFeature implements Download {
                             secondaryIrodsStreams.add(new IRODSDataObjectInputStream(conn.getRcComm(), logicalPath));
                             localFileStreams.add(Files.newOutputStream(localFilePath, StandardOpenOption.WRITE));
                             tasks.add(executor.submit(new IRODSChunkWorker(
+                                    status,
+                                    listener,
                                     secondaryIrodsStreams.get(secondaryIrodsStreams.size() - 1),
                                     localFileStreams.get(localFileStreams.size() - 1),
                                     i * chunkSize,
