@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Logger;
 import org.irods.irods4j.high_level.catalog.IRODSQuery;
 import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.vfs.IRODSFilesystem;
+import org.irods.irods4j.high_level.vfs.LogicalPath;
 import org.irods.irods4j.low_level.api.IRODSException;
 
 import java.io.IOException;
@@ -60,12 +61,20 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
             log.debug("data object exists in iRODS. fetching data using GenQuery2.");
             String query = String.format(
                     "select DATA_CREATE_TIME, DATA_MODIFY_TIME, DATA_SIZE, DATA_CHECKSUM, DATA_REPL_STATUS where COLL_NAME = '%s' and DATA_NAME = '%s' order by DATA_REPL_STATUS desc, DATA_MODIFY_TIME desc",
-                    FilenameUtils.getFullPathNoEndSeparator(logicalPath),
-                    FilenameUtils.getName(logicalPath));
+                    LogicalPath.parentPath(logicalPath),
+                    LogicalPath.objectName(logicalPath));
+            log.debug("query = [{}]", query);
             List<List<String>> rows = IRODSQuery.executeGenQuery2(conn.getRcComm(), query);
 
             PathAttributes attrs = new PathAttributes();
-            setAttributes(attrs, rows.get(0));
+
+            if (!rows.isEmpty()) {
+                List<String> row = rows.get(0);
+                if ("0".equals(row.get(4)) || "1".equals(row.get(4))) {
+                    setAttributes(attrs, row);
+                }
+            }
+
             return attrs;
         }
         catch(IOException | IRODSException e) {
