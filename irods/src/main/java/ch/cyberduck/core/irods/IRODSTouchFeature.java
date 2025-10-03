@@ -61,4 +61,9 @@ public class IRODSTouchFeature implements Touch {
             throw new IRODSExceptionMappingService().map("Cannot create {0}", e, file);
         }
     }
+
+    @Override
+    public boolean isSupported(final Path workdir, final String filename) {
+        return true;
+    }
 }

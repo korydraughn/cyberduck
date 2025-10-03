@@ -197,11 +197,6 @@ public class IRODSUploadFeature implements Upload<Checksum> {
         return null;
     }
 
-//    @Override
-//    public Write.Append append(final Path file, final TransferStatus status) throws BackgroundException {
-//        return new Write.Append(status.isExists()).withStatus(status);
-//    }
-
     @Override
     public Upload<Checksum> withWriter(final Write<Checksum> writer) {
         return this;
@@ -220,7 +215,9 @@ public class IRODSUploadFeature implements Upload<Checksum> {
             try {
                 streams.get(i).close(closeInstructions);
             }
-            catch(Exception e) { /* Ignored */ }
+            catch(Exception e) {
+                log.error(e.getMessage());
+            }
         }
 
         try {
@@ -236,7 +233,9 @@ public class IRODSUploadFeature implements Upload<Checksum> {
             try {
                 out.close();
             }
-            catch(Exception e) { /* Ignored */ }
+            catch(Exception e) {
+                log.error(e.getMessage());
+            }
         });
     }
 

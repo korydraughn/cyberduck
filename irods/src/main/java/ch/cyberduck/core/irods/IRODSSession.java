@@ -33,6 +33,7 @@ import ch.cyberduck.core.features.Find;
 import ch.cyberduck.core.features.Home;
 import ch.cyberduck.core.features.Move;
 import ch.cyberduck.core.features.Read;
+import ch.cyberduck.core.features.Timestamp;
 import ch.cyberduck.core.features.Touch;
 import ch.cyberduck.core.features.Upload;
 import ch.cyberduck.core.preferences.HostPreferencesFactory;
@@ -173,8 +174,6 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
     @Override
     @SuppressWarnings("unchecked")
     public <T> T _getFeature(final Class<T> type) {
-        // TODO IRODSDownloadFeature and IRODSUploadFeature are not handled.
-        // TODO Download.class and Upload.class are handled by other protocol implementations.
         if(type == ListService.class) {
             return (T) new IRODSListService(this);
         }
@@ -193,10 +192,7 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         if(type == Move.class) {
             return (T) new IRODSMoveFeature(this);
         }
-//        if (type == Download.class) {
-//            return (T) new IRODSDownloadFeature(this);
-//        }
-        if (type == Upload.class) {
+        if(type == Upload.class) {
             return (T) new IRODSUploadFeature(this);
         }
         if(type == Touch.class) {
@@ -210,6 +206,9 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         }
         if(type == AttributesFinder.class) {
             return (T) new IRODSAttributesFinderFeature(this);
+        }
+        if(type == Timestamp.class) {
+            return (T) new IRODSTimestamp(this);
         }
         return super._getFeature(type);
     }
