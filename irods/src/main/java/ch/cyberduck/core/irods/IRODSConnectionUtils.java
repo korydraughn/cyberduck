@@ -20,6 +20,7 @@ import org.irods.irods4j.authentication.AuthPlugin;
 import org.irods.irods4j.authentication.NativeAuthPlugin;
 import org.irods.irods4j.authentication.PamInteractiveAuthPlugin;
 import org.irods.irods4j.authentication.PamPasswordAuthPlugin;
+import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.connection.IRODSConnectionPool;
 import org.irods.irods4j.high_level.connection.QualifiedUsername;
 import org.irods.irods4j.low_level.api.IRODSApi;
@@ -28,6 +29,18 @@ import org.irods.irods4j.low_level.api.IRODSException;
 import java.io.IOException;
 
 final class IRODSConnectionUtils {
+
+    public static IRODSConnection newConnection(IRODSSession session) throws Exception {
+        String host = session.getHost().getHostname();
+        int port = session.getHost().getPort();
+        String zone = session.getRegion();
+        String username = session.getHost().getCredentials().getUsername();
+        String password = session.getHost().getCredentials().getPassword();
+        IRODSConnection conn = new IRODSConnection();
+        conn.connect(host, port, new QualifiedUsername(username, zone));
+        conn.authenticate(new NativeAuthPlugin(), password);
+        return conn;
+    }
 
     public static void startIRODSConnectionPool(IRODSSession session, IRODSConnectionPool connPool) throws IRODSException, IOException {
         String host = session.getHost().getHostname();

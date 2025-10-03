@@ -31,6 +31,7 @@ import ch.cyberduck.core.transfer.TransferStatus;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.connection.IRODSConnectionPool;
 import org.irods.irods4j.high_level.connection.IRODSConnectionPool.PoolConnection;
 import org.irods.irods4j.high_level.io.IRODSDataObjectOutputStream;
@@ -73,32 +74,27 @@ public class IRODSUploadFeature implements Upload<Checksum> {
             // Transfer the bytes over multiple connections if the size of the local file
             // exceeds a certain threshold - e.g. 32MB.
             // TODO Consider making this configurable.
-            if(fileSize < 32 * TransferStatus.MEGA) { //preferences.getInteger("irods.parallel_transfer.size_threshold")) {
+            if(fileSize < 32L * TransferStatus.MEGA) { //preferences.getInteger("irods.parallel_transfer.size_threshold")) {
                 log.info("local file is smaller than 32MB. performing single-threaded transfer.");
 
-                byte[] buffer = new byte[(int) (4 * TransferStatus.MEGA)]; //preferences.getInteger("irods.parallel_transfer.rbuffer_size")];
+                byte[] buffer = new byte[(int) (4L * TransferStatus.MEGA)]; //preferences.getInteger("irods.parallel_transfer.rbuffer_size")];
                 boolean truncate = true;
                 boolean append = false;
 
                 try(FileInputStream in = new FileInputStream(local.getAbsolute());
-                    // TODO Consider using a different iRODS connection for data transfers.
-                    // We need to think about asynchronous operations. iRODS does not support
-                    // simultaneous use of connections.
-                    IRODSDataObjectOutputStream out = new IRODSDataObjectOutputStream(
-                            session.getClient().getRcComm(), logicalPath, truncate, append)) {
+                    IRODSConnection conn = IRODSConnectionUtils.newConnection(session);
+                    IRODSDataObjectOutputStream out = new IRODSDataObjectOutputStream(conn.getRcComm(), logicalPath, truncate, append)) {
                     while(true) {
                         status.validate(); // Throws if transfer is cancelled.
                         int bytesRead = in.read(buffer);
                         if(bytesRead == -1) {
-                            break;
+                            return null;
                         }
                         streamListener.recv(bytesRead);
                         out.write(buffer, 0, bytesRead);
                         streamListener.sent(bytesRead);
                     }
                 }
-
-                return null;
             }
 
             //
@@ -108,7 +104,7 @@ public class IRODSUploadFeature implements Upload<Checksum> {
             log.info("local file is larger than 32MB. performing multi-threaded transfer.");
 
             // TODO Clamp the value so that users do not specify something ridiculous.
-            final int threadCount = preferences.getInteger("irods.parallel_transfer.thread_count");
+            final int threadCount = 3; //preferences.getInteger("irods.parallel_transfer.thread_count");
             log.info("thread count = [{}]; starting thread pool.", threadCount);
             final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
 
@@ -220,7 +216,7 @@ public class IRODSUploadFeature implements Upload<Checksum> {
         closeInstructions.computeChecksum = false;
         closeInstructions.sendNotifications = false;
 
-        for (int i = 1; i < streams.size(); ++i) {
+        for(int i = 1; i < streams.size(); ++i) {
             try {
                 streams.get(i).close(closeInstructions);
             }
