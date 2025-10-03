@@ -193,9 +193,9 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         if(type == Move.class) {
             return (T) new IRODSMoveFeature(this);
         }
-        if (type == Download.class) {
-            return (T) new IRODSDownloadFeature(this);
-        }
+//        if (type == Download.class) {
+//            return (T) new IRODSDownloadFeature(this);
+//        }
         if (type == Upload.class) {
             return (T) new IRODSUploadFeature(this);
         }

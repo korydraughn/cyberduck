@@ -21,17 +21,11 @@ import ch.cyberduck.core.transfer.TransferStatus;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.irods.irods4j.high_level.io.IRODSDataObjectInputStream;
-import org.irods.irods4j.high_level.io.IRODSDataObjectOutputStream;
-import org.irods.irods4j.high_level.io.IRODSDataObjectStream;
 import org.irods.irods4j.low_level.api.IRODSException;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.channels.FileChannel;
 
 public class IRODSChunkWorker implements Runnable {
 
@@ -63,8 +57,8 @@ public class IRODSChunkWorker implements Runnable {
     @Override
     public void run() {
         try {
-            seek(in);
-            seek(out);
+            IRODSStreamUtils.seek(in, offset);
+            IRODSStreamUtils.seek(out, offset);
 
             long remaining = chunkSize;
             while(remaining > 0) {
@@ -99,41 +93,4 @@ public class IRODSChunkWorker implements Runnable {
         }
     }
 
-    private void seek(InputStream in) throws IRODSException, IOException {
-        if(in instanceof IRODSDataObjectInputStream) {
-            IRODSDataObjectInputStream stream = (IRODSDataObjectInputStream) in;
-            long totalOffset = offset;
-            log.info("input stream: total offset = [{}]", totalOffset);
-            while(totalOffset > 0) {
-                long intermediateOffset = Math.min(totalOffset, Integer.MAX_VALUE);
-                totalOffset -= intermediateOffset;
-                log.info("input stream: offsetting by [{}]. remaining offset = [{}]", intermediateOffset, totalOffset);
-                stream.seek((int) intermediateOffset, IRODSDataObjectStream.SeekDirection.CURRENT);
-            }
-        }
-        else if(in instanceof FileInputStream) {
-            log.info("input stream: seeking to position [{}]", offset);
-            FileChannel fc = ((FileInputStream) in).getChannel().position(offset);
-            log.info("input stream: position = [{}]", fc.position());
-        }
-    }
-
-    private void seek(OutputStream out) throws IRODSException, IOException {
-        if(out instanceof IRODSDataObjectOutputStream) {
-            IRODSDataObjectOutputStream stream = (IRODSDataObjectOutputStream) out;
-            long totalOffset = offset;
-            log.info("output stream: total offset = [{}]", totalOffset);
-            while(totalOffset > 0) {
-                long intermediateOffset = Math.min(totalOffset, Integer.MAX_VALUE);
-                totalOffset -= intermediateOffset;
-                log.info("output stream: offsetting by [{}]. remaining offset = [{}]", intermediateOffset, totalOffset);
-                stream.seek((int) intermediateOffset, IRODSDataObjectStream.SeekDirection.CURRENT);
-            }
-        }
-        else if(out instanceof FileOutputStream) {
-            log.info("output stream: seeking to position [{}]", offset);
-            FileChannel fc = ((FileOutputStream) out).getChannel().position(offset);
-            log.info("output stream: position = [{}]", fc.position());
-        }
-    }
 }

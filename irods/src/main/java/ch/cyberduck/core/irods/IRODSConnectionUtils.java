@@ -36,7 +36,7 @@ final class IRODSConnectionUtils {
         String zone = session.getRegion();
         String username = session.getHost().getCredentials().getUsername();
         String password = session.getHost().getCredentials().getPassword();
-        IRODSConnection conn = new IRODSConnection();
+        IRODSConnection conn = new IRODSConnection(); // TODO Needs to support enabling TLS.
         conn.connect(host, port, new QualifiedUsername(username, zone));
         conn.authenticate(new NativeAuthPlugin(), password);
         return conn;
