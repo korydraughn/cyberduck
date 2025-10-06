@@ -188,12 +188,13 @@ public class IRODSUploadFeature implements Upload<Checksum> {
             executor.awaitTermination(5, TimeUnit.SECONDS);
             log.debug("done.");
 
-            if (preferences.getBoolean("queue.upload.checksum.calculate")) {
-                log.debug("calculating checksum.");
-                String checksum = IRODSFilesystem.dataObjectChecksum(session.getClient().getRcComm(), logicalPath);
-                log.debug("calculated checksum = [{}]", checksum);
-                return Checksum.parse(checksum);
-            }
+            // TODO Not sure how to work with checksums.
+//            if (preferences.getBoolean("queue.upload.checksum.calculate")) {
+//                log.debug("calculating checksum.");
+//                String checksum = IRODSFilesystem.dataObjectChecksum(session.getClient().getRcComm(), logicalPath);
+//                log.debug("calculated checksum = [{}]", checksum);
+//                return Checksum.parse(checksum);
+//            }
         }
         catch(Exception e) {
             throw new IRODSExceptionMappingService().map(e);
