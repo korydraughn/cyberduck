@@ -82,8 +82,7 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
 
             if (IRODSFilesystem.isCollection(status)) {
                 log.debug("collection exists in iRODS. fetching data using GenQuery2.");
-                String query = String.format("select COLL_CREATE_TIME, COLL_MODIFY_TIME, where COLL_NAME = '%s'",
-                        LogicalPath.parentPath(logicalPath));
+                String query = String.format("select COLL_CREATE_TIME, COLL_MODIFY_TIME where COLL_NAME = '%s'", logicalPath);
                 log.debug("query = [{}]", query);
                 List<List<String>> rows = IRODSQuery.executeGenQuery2(conn.getRcComm(), query);
 

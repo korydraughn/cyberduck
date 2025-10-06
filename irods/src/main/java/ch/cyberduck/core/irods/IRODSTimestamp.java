@@ -20,12 +20,22 @@ import ch.cyberduck.core.exception.BackgroundException;
 import ch.cyberduck.core.features.Timestamp;
 import ch.cyberduck.core.transfer.TransferStatus;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.irods.irods4j.high_level.catalog.IRODSQuery;
+import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.vfs.IRODSFilesystem;
+import org.irods.irods4j.high_level.vfs.IRODSReplicas;
+import org.irods.irods4j.high_level.vfs.LogicalPath;
+import org.irods.irods4j.high_level.vfs.ObjectStatus;
 import org.irods.irods4j.low_level.api.IRODSException;
 
 import java.io.IOException;
+import java.util.List;
 
 public class IRODSTimestamp implements Timestamp {
+
+    private static final Logger log = LogManager.getLogger(IRODSTimestamp.class);
 
     private IRODSSession session;
 
@@ -35,15 +45,50 @@ public class IRODSTimestamp implements Timestamp {
 
     @Override
     public void setTimestamp(final Path file, final TransferStatus status) throws BackgroundException {
+        final String logicalPath = file.getAbsolute();
+
         if(status.getModified() != null) {
             long seconds = Timestamp.toSeconds(status.getModified());
+            log.debug("setting timestamp for [{}] to [{}] seconds (since epoch).", logicalPath, seconds);
+
             try {
-                IRODSFilesystem.lastWriteTime(session.getClient().getRcComm(), file.getAbsolute(), seconds);
+                ObjectStatus objectStatus = IRODSFilesystem.status(session.getClient().getRcComm(), logicalPath);
+                boolean updated = true;
+
+                if (IRODSFilesystem.isDataObject(objectStatus)) {
+                    long replicaNumber = getReplicaNumberOfLatestGoodReplica(logicalPath);
+                    IRODSReplicas.lastWriteTime(session.getClient().getRcComm(), logicalPath, replicaNumber, seconds);
+                }
+                else if (IRODSFilesystem.isCollection(objectStatus)) {
+                    IRODSFilesystem.lastWriteTime(session.getClient().getRcComm(), logicalPath, seconds);
+                }
+                else {
+                    updated = false;
+                    log.debug("path does not point to a data object or collection. cannot update timestamp.");
+                }
+
+                if (updated) {
+                    log.debug("timestamp set to [{}] seconds (since epoch) on [{}] successfully.", seconds, logicalPath);
+                }
             }
             catch(IOException | IRODSException e) {
                 throw new IRODSExceptionMappingService().map(e);
             }
         }
+    }
+
+    private long getReplicaNumberOfLatestGoodReplica(String logicalPath) throws IRODSException, IOException {
+        final IRODSConnection conn = session.getClient();
+
+        log.debug("getting replica number of latest (good) replica.");
+        String query = String.format(
+                "select DATA_REPL_NUM where COLL_NAME = '%s' and DATA_NAME = '%s' order by DATA_REPL_STATUS desc, DATA_MODIFY_TIME desc",
+                LogicalPath.parentPath(logicalPath),
+                LogicalPath.objectName(logicalPath));
+        log.debug("query = [{}]", query);
+        List<List<String>> rows = IRODSQuery.executeGenQuery2(conn.getRcComm(), query);
+
+        return Long.parseLong(rows.get(0).get(0));
     }
 
 }
