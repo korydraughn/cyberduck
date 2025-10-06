@@ -122,26 +122,7 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
         attrs.setCreationDate(Long.parseLong(row.get(0)) * 1000); // seconds to ms
         attrs.setModificationDate(Long.parseLong(row.get(1)) * 1000);
         attrs.setSize(Long.parseLong(row.get(2)));
-
-        String checksum = row.get(3);
-        if(!StringUtils.isEmpty(checksum)) {
-            int colon = checksum.indexOf(':');
-            if (-1 == colon) {
-                log.debug("no hash algorithm prefix found in iRODS checksum. ignoring checksum.");
-                return;
-            }
-
-            if (colon + 1 >= checksum.length()) {
-                log.debug("iRODS checksum may be corrupted. ignoring checksum.");
-                return;
-            }
-
-            log.debug("checksum from iRODS server is [{}].", checksum);
-            checksum = checksum.substring(colon + 1);
-            checksum = Hex.encodeHexString(Base64.decodeBase64(checksum));
-            log.debug("base64-decoded, hex-encoded checksum is [{}].", checksum);
-            attrs.setChecksum(Checksum.parse(checksum));
-        }
+        attrs.setChecksum(IRODSChecksumUtils.toChecksum(row.get(3)));
     }
 
 }
