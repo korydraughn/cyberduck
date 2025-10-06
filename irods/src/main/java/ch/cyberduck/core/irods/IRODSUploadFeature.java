@@ -36,6 +36,7 @@ import org.irods.irods4j.high_level.connection.IRODSConnectionPool;
 import org.irods.irods4j.high_level.connection.IRODSConnectionPool.PoolConnection;
 import org.irods.irods4j.high_level.io.IRODSDataObjectOutputStream;
 import org.irods.irods4j.high_level.io.IRODSDataObjectStream;
+import org.irods.irods4j.high_level.vfs.IRODSFilesystem;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -66,16 +67,16 @@ public class IRODSUploadFeature implements Upload<Checksum> {
             final long fileSize = local.attributes().getSize();
             final String logicalPath = file.getAbsolute();
 
-            log.info("status.getLength() = [{}]", status.getLength());
-            log.info("fileSize           = [{}]", fileSize);
-            log.info("local file         = [{}]", local.getAbsolute());
-            log.info("logicalPath        = [{}]", logicalPath);
+            log.debug("status.getLength() = [{}]", status.getLength());
+            log.debug("fileSize           = [{}]", fileSize);
+            log.debug("local file         = [{}]", local.getAbsolute());
+            log.debug("logicalPath        = [{}]", logicalPath);
 
             // Transfer the bytes over multiple connections if the size of the local file
             // exceeds a certain threshold - e.g. 32MB.
             // TODO Consider making this configurable.
             if(fileSize < 32L * TransferStatus.MEGA) { //preferences.getInteger("irods.parallel_transfer.size_threshold")) {
-                log.info("local file is smaller than 32MB. performing single-threaded transfer.");
+                log.debug("local file is smaller than 32MB. performing single-threaded transfer.");
 
                 byte[] buffer = new byte[(int) (4L * TransferStatus.MEGA)]; //preferences.getInteger("irods.parallel_transfer.rbuffer_size")];
                 boolean truncate = true;
@@ -101,27 +102,27 @@ public class IRODSUploadFeature implements Upload<Checksum> {
             // The data object is larger than the threshold so use parallel transfer.
             //
 
-            log.info("local file is larger than 32MB. performing multi-threaded transfer.");
+            log.debug("local file is larger than 32MB. performing multi-threaded transfer.");
 
             // TODO Clamp the value so that users do not specify something ridiculous.
             final int threadCount = 3; //preferences.getInteger("irods.parallel_transfer.thread_count");
-            log.info("thread count = [{}]; starting thread pool.", threadCount);
+            log.debug("thread count = [{}]; starting thread pool.", threadCount);
             final ExecutorService executor = Executors.newFixedThreadPool(threadCount);
 
             final long chunkSize = fileSize / threadCount;
             final long remainingBytes = fileSize % threadCount;
-            log.info("chunk size      = [{}]", chunkSize);
-            log.info("remaining bytes = [{}]", remainingBytes);
+            log.debug("chunk size      = [{}]", chunkSize);
+            log.debug("remaining bytes = [{}]", remainingBytes);
 
             final List<InputStream> localFileStreams = new ArrayList<>();
             final List<IRODSDataObjectOutputStream> irodsStreams = new ArrayList<>();
 
-            log.info("launching connection pool with [{}] connections.", threadCount);
+            log.debug("launching connection pool with [{}] connections.", threadCount);
             try(IRODSConnectionPool pool = new IRODSConnectionPool(threadCount)) {
                 status.validate(); // Throws if transfer is cancelled.
 
                 IRODSConnectionUtils.startIRODSConnectionPool(session, pool);
-                log.info("connection pool started.");
+                log.debug("connection pool started.");
 
                 try {
                     // Initialize streams.
@@ -136,18 +137,18 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                         PoolConnection conn = pool.getConnection();
 
                         if(0 == i) {
-                            log.info("opened primary iRODS stream.");
+                            log.debug("opened primary iRODS stream.");
                             // The first iRODS output stream is the primary stream. The opened
                             // replica is always truncated upon success.
                             irodsStreams.add(new IRODSDataObjectOutputStream(
                                     conn.getRcComm(), logicalPath, true, false));
                             replicaToken = irodsStreams.get(0).getReplicaToken();
                             replicaNumber = irodsStreams.get(0).getReplicaNumber();
-                            log.info("replica token  = [{}]", replicaToken);
-                            log.info("replica number = [{}]", replicaNumber);
+                            log.debug("replica token  = [{}]", replicaToken);
+                            log.debug("replica number = [{}]", replicaNumber);
                         }
                         else {
-                            log.info("opened secondary iRODS stream.");
+                            log.debug("opened secondary iRODS stream.");
                             irodsStreams.add(new IRODSDataObjectOutputStream(
                                     conn.getRcComm(), replicaToken, logicalPath, replicaNumber, false, false));
                         }
@@ -160,7 +161,7 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                     List<Future<?>> tasks = new ArrayList<>();
 
                     // Launch remaining IO tasks.
-                    log.info("launch parallel IO tasks.");
+                    log.debug("launch parallel IO tasks.");
                     for(int i = 0; i < threadCount; ++i) {
                         tasks.add(executor.submit(new IRODSChunkWorker(
                                 status,
@@ -181,19 +182,23 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                 }
             }
 
-            log.info("shutting down thread pool executor.");
+            log.debug("shutting down thread pool executor.");
             executor.shutdown();
             // TODO Make this configurable.
             executor.awaitTermination(5, TimeUnit.SECONDS);
-            log.info("done.");
+            log.debug("done.");
+
+            if (preferences.getBoolean("queue.upload.checksum.calculate")) {
+                log.debug("calculating checksum.");
+                String checksum = IRODSFilesystem.dataObjectChecksum(session.getClient().getRcComm(), logicalPath);
+                log.debug("calculated checksum = [{}]", checksum);
+                return Checksum.parse(checksum);
+            }
         }
         catch(Exception e) {
             throw new IRODSExceptionMappingService().map(e);
         }
 
-        // TODO Make this configurable.
-//      final String fingerprintValue = IRODSFilesystem.dataObjectChecksum(primaryConn, logicalPath);
-//      return Checksum.parse(fingerprintValue);
         return null;
     }
 
@@ -203,7 +208,7 @@ public class IRODSUploadFeature implements Upload<Checksum> {
     }
 
     private static void closeOutputStreams(List<IRODSDataObjectOutputStream> streams) {
-        log.info("closing output streams.");
+        log.debug("closing output streams.");
 
         final IRODSDataObjectStream.OnCloseSuccess closeInstructions = new IRODSDataObjectStream.OnCloseSuccess();
         closeInstructions.updateSize = false;
@@ -223,11 +228,13 @@ public class IRODSUploadFeature implements Upload<Checksum> {
         try {
             streams.get(0).close();
         }
-        catch(Exception e) { /* Ignored */ }
+        catch(Exception e) {
+            log.error(e.getMessage());
+        }
     }
 
     private static void closeInputStreams(List<InputStream> streams) {
-        log.info("closing input streams.");
+        log.debug("closing input streams.");
 
         streams.forEach(out -> {
             try {
@@ -240,7 +247,7 @@ public class IRODSUploadFeature implements Upload<Checksum> {
     }
 
     private static void waitForTasksToComplete(List<Future<?>> tasks) {
-        log.info("waiting for parallel IO tasks to finish.");
+        log.debug("waiting for parallel IO tasks to finish.");
         for(Future<?> task : tasks) {
             try {
                 task.get();
@@ -249,6 +256,6 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                 log.error(e.getMessage());
             }
         }
-        log.info("parallel IO tasks have finished.");
+        log.debug("parallel IO tasks have finished.");
     }
 }

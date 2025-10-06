@@ -24,7 +24,8 @@ import ch.cyberduck.core.features.AttributesAdapter;
 import ch.cyberduck.core.features.AttributesFinder;
 import ch.cyberduck.core.io.Checksum;
 
-import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,6 +33,7 @@ import org.irods.irods4j.high_level.catalog.IRODSQuery;
 import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.vfs.IRODSFilesystem;
 import org.irods.irods4j.high_level.vfs.LogicalPath;
+import org.irods.irods4j.high_level.vfs.ObjectStatus;
 import org.irods.irods4j.low_level.api.IRODSException;
 
 import java.io.IOException;
@@ -52,30 +54,55 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
         try {
             log.debug("looking up path attributes.");
 
-            final IRODSConnection conn = session.getClient();
             final String logicalPath = file.getAbsolute();
-            if(!IRODSFilesystem.exists(session.getClient().getRcComm(), logicalPath)) {
-                throw new NotfoundException(file.getAbsolute());
+            final IRODSConnection conn = session.getClient();
+
+            ObjectStatus status = IRODSFilesystem.status(session.getClient().getRcComm(), logicalPath);
+
+            if (IRODSFilesystem.isDataObject(status)) {
+                log.debug("data object exists in iRODS. fetching data using GenQuery2.");
+                String query = String.format(
+                        "select DATA_CREATE_TIME, DATA_MODIFY_TIME, DATA_SIZE, DATA_CHECKSUM, DATA_REPL_STATUS where COLL_NAME = '%s' and DATA_NAME = '%s' order by DATA_REPL_STATUS desc, DATA_MODIFY_TIME desc",
+                        LogicalPath.parentPath(logicalPath),
+                        LogicalPath.objectName(logicalPath));
+                log.debug("query = [{}]", query);
+                List<List<String>> rows = IRODSQuery.executeGenQuery2(conn.getRcComm(), query);
+
+                PathAttributes attrs = new PathAttributes();
+
+                if (!rows.isEmpty()) {
+                    List<String> row = rows.get(0);
+                    if ("0".equals(row.get(4)) || "1".equals(row.get(4))) {
+                        setAttributes(attrs, row);
+                    }
+                }
+
+                return attrs;
             }
 
-            log.debug("data object exists in iRODS. fetching data using GenQuery2.");
-            String query = String.format(
-                    "select DATA_CREATE_TIME, DATA_MODIFY_TIME, DATA_SIZE, DATA_CHECKSUM, DATA_REPL_STATUS where COLL_NAME = '%s' and DATA_NAME = '%s' order by DATA_REPL_STATUS desc, DATA_MODIFY_TIME desc",
-                    LogicalPath.parentPath(logicalPath),
-                    LogicalPath.objectName(logicalPath));
-            log.debug("query = [{}]", query);
-            List<List<String>> rows = IRODSQuery.executeGenQuery2(conn.getRcComm(), query);
+            if (IRODSFilesystem.isCollection(status)) {
+                log.debug("collection exists in iRODS. fetching data using GenQuery2.");
+                String query = String.format("select COLL_CREATE_TIME, COLL_MODIFY_TIME, where COLL_NAME = '%s'",
+                        LogicalPath.parentPath(logicalPath));
+                log.debug("query = [{}]", query);
+                List<List<String>> rows = IRODSQuery.executeGenQuery2(conn.getRcComm(), query);
 
-            PathAttributes attrs = new PathAttributes();
+                PathAttributes attrs = new PathAttributes();
 
-            if (!rows.isEmpty()) {
-                List<String> row = rows.get(0);
-                if ("0".equals(row.get(4)) || "1".equals(row.get(4))) {
+                if (!rows.isEmpty()) {
+                    // Collections do not have the same properties as data objects
+                    // so fill in the gaps to satisfy requirements of setAttributes.
+                    List<String> row = rows.get(0);
+                    row.add("0"); // Data size
+                    row.add("");  // Checksum
+                    row.add("");  // Replica status
                     setAttributes(attrs, row);
                 }
+
+                return attrs;
             }
 
-            return attrs;
+            throw new NotfoundException(logicalPath);
         }
         catch(IOException | IRODSException e) {
             throw new IRODSExceptionMappingService().map("Failure to read attributes of {0}", e, file);
@@ -99,9 +126,23 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
 
         String checksum = row.get(3);
         if(!StringUtils.isEmpty(checksum)) {
+            int colon = checksum.indexOf(':');
+            if (-1 == colon) {
+                log.debug("no hash algorithm prefix found in iRODS checksum. ignoring checksum.");
+                return;
+            }
+
+            if (colon + 1 >= checksum.length()) {
+                log.debug("iRODS checksum may be corrupted. ignoring checksum.");
+                return;
+            }
+
             log.debug("checksum from iRODS server is [{}].", checksum);
-            checksum = checksum.substring(checksum.indexOf(':') + 1);
+            checksum = checksum.substring(colon + 1);
+            checksum = Hex.encodeHexString(Base64.decodeBase64(checksum));
+            log.debug("base64-decoded, hex-encoded checksum is [{}].", checksum);
             attrs.setChecksum(Checksum.parse(checksum));
         }
     }
+
 }

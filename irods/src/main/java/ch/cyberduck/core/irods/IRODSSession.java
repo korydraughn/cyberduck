@@ -50,6 +50,8 @@ import ch.cyberduck.core.ssl.X509TrustManager;
 import ch.cyberduck.core.threading.CancelCallback;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.irods.irods4j.authentication.AuthPlugin;
 import org.irods.irods4j.authentication.NativeAuthPlugin;
 import org.irods.irods4j.authentication.PamInteractiveAuthPlugin;
@@ -67,6 +69,8 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         IRODSApi.setApplicationName("Cyberduck");
     }
 
+    private static final Logger log = LogManager.getLogger(IRODSSession.class);
+
     public IRODSSession(final Host h) {
         super(h, new DisabledX509TrustManager(), new DefaultX509KeyManager());
     }
@@ -78,13 +82,19 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
     @Override
     protected IRODSConnection connect(final ProxyFinder proxy, final HostKeyCallback key, final LoginCallback prompt, final CancelCallback cancel) throws BackgroundException {
         try {
+            log.debug("connecting to iRODS server.");
+
             final String host = this.host.getHostname();
             final int port = this.host.getPort();
             final String username = this.host.getCredentials().getUsername();
             final String zone = getRegion();
 
+            log.debug("iRODS server: host=[{}], port=[{}], username=[{}], zone=[{}]", host, port, username, zone);
+
             IRODSConnection conn = new IRODSConnection(configure());
             conn.connect(host, port, new QualifiedUsername(username, zone));
+            log.debug("connected to iRODS server successfully.");
+
             return conn;
         }
         catch(Exception e) {
@@ -100,6 +110,7 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
     }
 
     protected ConnectionOptions configure() {
+        log.debug("configuring iRODS connection.");
         final PreferencesReader preferences = HostPreferencesFactory.get(host);
         ConnectionOptions options = new ConnectionOptions();
         // TODO Use preferences to configure the connection.
@@ -125,10 +136,13 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
     @Override
     public void login(final LoginCallback prompt, final CancelCallback cancel) throws BackgroundException {
         try {
+            log.debug("authenticating with iRODS server.");
+
             final Credentials credentials = host.getCredentials();
             final String password = credentials.getPassword();
 
             final String authScheme = StringUtils.defaultIfBlank(host.getProtocol().getAuthorization(), "native");
+            log.debug("authentication scheme from configuration is [{}].", authScheme);
             AuthPlugin plugin = null;
             if("native".equals(authScheme)) {
                 plugin = new NativeAuthPlugin();
@@ -144,6 +158,7 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
             }
 
             client.authenticate(plugin, password);
+            log.debug("authenticated with iRODS server successfully.");
         }
         catch(Exception e) {
             throw new LoginFailureException(MessageFormat.format(LocaleFactory.localizedString(
@@ -164,10 +179,11 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
             if(client != null) {
                 client.disconnect();
                 client = null;
+                log.debug("disconnected from iRODS server.");
             }
         }
         catch(Exception e) {
-            // Ignored.
+            log.error(e.getMessage());
         }
     }
 
