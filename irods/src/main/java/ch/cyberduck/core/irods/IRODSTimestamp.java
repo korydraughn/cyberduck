@@ -82,7 +82,7 @@ public class IRODSTimestamp implements Timestamp {
 
         log.debug("getting replica number of latest (good) replica.");
         String query = String.format(
-                "select DATA_REPL_NUM where COLL_NAME = '%s' and DATA_NAME = '%s' order by DATA_REPL_STATUS desc, DATA_MODIFY_TIME desc",
+                "select DATA_REPL_NUM, DATA_REPL_STATUS, DATA_MODIFY_TIME where COLL_NAME = '%s' and DATA_NAME = '%s' order by DATA_REPL_STATUS desc, DATA_MODIFY_TIME desc",
                 LogicalPath.parentPath(logicalPath),
                 LogicalPath.objectName(logicalPath));
         log.debug("query = [{}]", query);

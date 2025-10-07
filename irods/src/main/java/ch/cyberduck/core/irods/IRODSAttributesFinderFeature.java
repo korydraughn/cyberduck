@@ -22,11 +22,7 @@ import ch.cyberduck.core.exception.BackgroundException;
 import ch.cyberduck.core.exception.NotfoundException;
 import ch.cyberduck.core.features.AttributesAdapter;
 import ch.cyberduck.core.features.AttributesFinder;
-import ch.cyberduck.core.io.Checksum;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.irods.irods4j.high_level.catalog.IRODSQuery;
@@ -118,7 +114,6 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
     private static void setAttributes(final PathAttributes attrs, final List<String> row) {
         log.debug("path attribute info: created at [{}], modified at [{}], data size = [{}], checksum = [{}]",
                 row.get(0), row.get(1), row.get(2), row.get(3));
-
         attrs.setCreationDate(Long.parseLong(row.get(0)) * 1000); // seconds to ms
         attrs.setModificationDate(Long.parseLong(row.get(1)) * 1000);
         attrs.setSize(Long.parseLong(row.get(2)));

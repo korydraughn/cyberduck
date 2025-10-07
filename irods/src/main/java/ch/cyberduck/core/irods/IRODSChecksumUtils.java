@@ -29,18 +29,18 @@ public final class IRODSChecksumUtils {
 
     public static Checksum toChecksum(String irodsChecksum) {
         if(StringUtils.isEmpty(irodsChecksum)) {
-            return null;
+            return Checksum.NONE;
         }
 
         int colon = irodsChecksum.indexOf(':');
         if (-1 == colon) {
             log.debug("no hash algorithm prefix found in iRODS checksum. ignoring checksum.");
-            return null;
+            return Checksum.NONE;
         }
 
         if (colon + 1 >= irodsChecksum.length()) {
             log.debug("iRODS checksum may be corrupted. ignoring checksum.");
-            return null;
+            return Checksum.NONE;
         }
 
         log.debug("checksum from iRODS server is [{}].", irodsChecksum);
