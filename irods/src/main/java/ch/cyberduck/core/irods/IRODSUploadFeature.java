@@ -89,7 +89,7 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                         status.validate(); // Throws if transfer is cancelled.
                         int bytesRead = in.read(buffer);
                         if(bytesRead == -1) {
-                            return null;
+                            return Checksum.NONE;
                         }
                         streamListener.recv(bytesRead);
                         out.write(buffer, 0, bytesRead);
@@ -195,12 +195,12 @@ public class IRODSUploadFeature implements Upload<Checksum> {
 //                log.debug("calculated checksum = [{}]", checksum);
 //                return Checksum.parse(checksum);
 //            }
+
+            return Checksum.NONE;
         }
         catch(Exception e) {
             throw new IRODSExceptionMappingService().map(e);
         }
-
-        return null;
     }
 
     @Override
