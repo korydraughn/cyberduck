@@ -23,7 +23,6 @@ import ch.cyberduck.core.exception.BackgroundException;
 import ch.cyberduck.core.features.Upload;
 import ch.cyberduck.core.features.Write;
 import ch.cyberduck.core.io.BandwidthThrottle;
-import ch.cyberduck.core.io.Checksum;
 import ch.cyberduck.core.io.StreamListener;
 import ch.cyberduck.core.preferences.HostPreferencesFactory;
 import ch.cyberduck.core.preferences.PreferencesReader;
@@ -36,7 +35,6 @@ import org.irods.irods4j.high_level.connection.IRODSConnectionPool;
 import org.irods.irods4j.high_level.connection.IRODSConnectionPool.PoolConnection;
 import org.irods.irods4j.high_level.io.IRODSDataObjectOutputStream;
 import org.irods.irods4j.high_level.io.IRODSDataObjectStream;
-import org.irods.irods4j.high_level.vfs.IRODSFilesystem;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -47,7 +45,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-public class IRODSUploadFeature implements Upload<Checksum> {
+public class IRODSUploadFeature implements Upload<Void> {
 
     private static final Logger log = LogManager.getLogger(IRODSUploadFeature.class);
 
@@ -58,9 +56,9 @@ public class IRODSUploadFeature implements Upload<Checksum> {
     }
 
     @Override
-    public Checksum upload(final Path file, final Local local, final BandwidthThrottle throttle,
-                           final ProgressListener progress, final StreamListener streamListener, final TransferStatus status,
-                           final ConnectionCallback callback) throws BackgroundException {
+    public Void upload(final Write<Void> write, final Path file, final Local local, final BandwidthThrottle throttle,
+                       final ProgressListener progress, final StreamListener streamListener, final TransferStatus status,
+                       final ConnectionCallback callback) throws BackgroundException {
         try {
             final PreferencesReader preferences = HostPreferencesFactory.get(session.getHost());
 
@@ -89,7 +87,7 @@ public class IRODSUploadFeature implements Upload<Checksum> {
                         status.validate(); // Throws if transfer is cancelled.
                         int bytesRead = in.read(buffer);
                         if(bytesRead == -1) {
-                            return Checksum.NONE;
+                            return null;
                         }
                         streamListener.recv(bytesRead);
                         out.write(buffer, 0, bytesRead);
@@ -196,16 +194,11 @@ public class IRODSUploadFeature implements Upload<Checksum> {
 //                return Checksum.parse(checksum);
 //            }
 
-            return Checksum.NONE;
+            return null;
         }
         catch(Exception e) {
             throw new IRODSExceptionMappingService().map(e);
         }
-    }
-
-    @Override
-    public Upload<Checksum> withWriter(final Write<Checksum> writer) {
-        return this;
     }
 
     private static void closeOutputStreams(List<IRODSDataObjectOutputStream> streams) {

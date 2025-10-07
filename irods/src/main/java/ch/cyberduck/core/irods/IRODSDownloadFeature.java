@@ -181,11 +181,6 @@ public class IRODSDownloadFeature implements Download {
         return false;
     }
 
-    @Override
-    public Download withReader(final Read reader) {
-        return this;
-    }
-
     private static void closeOutputStreams(List<OutputStream> streams) {
         log.info("closing output streams.");
 
