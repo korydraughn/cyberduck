@@ -24,8 +24,21 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.google.auto.service.AutoService;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @AutoService(Protocol.class)
 public final class IRODSProtocol extends AbstractProtocol {
+
+    public static final String CLIENT_SERVER_NEGOTIATION = "client_server_negotiation";
+    public static final String TLS_PROTOCOL              = "tls_protocol";
+    public static final String TLS_TRUSTSTORE            = "tls_truststore";
+    public static final String TLS_TRUSTSTORE_PASSWORD   = "tls_truststore_password";
+    public static final String ENCRYPTION_ALGORITHM      = "encryption_algorithm";
+    public static final String ENCRYPTION_KEY_SIZE       = "encryption_key_size";
+    public static final String ENCRYPTION_SALT_SIZE      = "encryption_salt_size";
+    public static final String ENCRYPTION_HASH_ROUNDS    = "encryption_hash_rounds";
+    public static final String DESTINATION_RESOURCE      = "destination_resource";
 
     @Override
     public String getIdentifier() {
@@ -65,5 +78,19 @@ public final class IRODSProtocol extends AbstractProtocol {
     @Override
     public VersioningMode getVersioningMode() {
         return VersioningMode.none;
+    }
+
+    @Override
+    public Map<String, String> getProperties() {
+        final Map<String, String> props = new HashMap<>();
+        props.put(CLIENT_SERVER_NEGOTIATION, "CS_NEG_REFUSE");
+        props.put(TLS_PROTOCOL, "TLSv1.2");
+        props.put(TLS_TRUSTSTORE, "MISSING PATH");
+        props.put(TLS_TRUSTSTORE_PASSWORD, "MISSING PASSWORD");
+        props.put(ENCRYPTION_ALGORITHM, "AES-256-CBC");
+        props.put(ENCRYPTION_KEY_SIZE, "32");
+        props.put(ENCRYPTION_SALT_SIZE, "8");
+        props.put(ENCRYPTION_HASH_ROUNDS, "16");
+        return props;
     }
 }

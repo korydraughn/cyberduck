@@ -28,7 +28,6 @@ import ch.cyberduck.core.features.AttributesFinder;
 import ch.cyberduck.core.features.Copy;
 import ch.cyberduck.core.features.Delete;
 import ch.cyberduck.core.features.Directory;
-import ch.cyberduck.core.features.Download;
 import ch.cyberduck.core.features.Find;
 import ch.cyberduck.core.features.Home;
 import ch.cyberduck.core.features.Move;
@@ -112,10 +111,21 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
     protected ConnectionOptions configure() {
         log.debug("configuring iRODS connection.");
         final PreferencesReader preferences = HostPreferencesFactory.get(host);
-        ConnectionOptions options = new ConnectionOptions();
-        // TODO Use preferences to configure the connection.
-//        options.tcpReceiveBufferSize = preferences.getInteger("connection.chunksize");
-//        options.tcpSendBufferSize = preferences.getInteger("connection.chunksize");
+        final ConnectionOptions options = new ConnectionOptions();
+
+        options.clientServerNegotiation = preferences.getProperty(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
+        options.sslProtocol = preferences.getProperty(IRODSProtocol.TLS_PROTOCOL);
+        options.sslTruststore = preferences.getProperty(IRODSProtocol.TLS_TRUSTSTORE);
+        options.sslTruststorePassword = preferences.getProperty(IRODSProtocol.TLS_TRUSTSTORE_PASSWORD);
+
+        options.encryptionAlgorithm = preferences.getProperty(IRODSProtocol.ENCRYPTION_ALGORITHM);
+        options.encryptionKeySize = preferences.getInteger(IRODSProtocol.ENCRYPTION_KEY_SIZE);
+        options.encryptionSaltSize = preferences.getInteger(IRODSProtocol.ENCRYPTION_SALT_SIZE);
+        options.encryptionNumHashRounds = preferences.getInteger(IRODSProtocol.ENCRYPTION_HASH_ROUNDS);
+
+//        options.tcpReceiveBufferSize = preferences.getInteger(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
+//        options.tcpSendBufferSize = preferences.getInteger(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
+
         return options;
     }
 
@@ -127,6 +137,12 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
     }
 
     protected String getResource() {
+        final PreferencesReader preferences = HostPreferencesFactory.get(host);
+        final String resc = preferences.getProperty(IRODSProtocol.DESTINATION_RESOURCE);
+        if (StringUtils.isNotEmpty(resc)) {
+            return resc;
+        }
+        // Fallback to old way of retrieving destination resource.
         if(StringUtils.contains(host.getRegion(), ':')) {
             return StringUtils.splitPreserveAllTokens(host.getRegion(), ':')[1];
         }
