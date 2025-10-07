@@ -22,18 +22,51 @@
         <key>Vendor</key>
         <string>iRODS Consortium</string>
         <key>Description</key>
-        <string>iRODS - The Integrated Rule-Oriented Data System</string>
+        <string>iRODS (Integrated Rule-Oriented Data System)</string>
+
         <key>Hostname Configurable</key>
         <true/>
         <key>Port Configurable</key>
         <true/>
+
         <key>Default Hostname</key>
         <string>irods.example.org</string>
-        <key>Region</key>
-        <string>tempZone</string>
         <key>Default Port</key>
         <string>1247</string>
+
+        <key>Zone</key>
+        <string>tempZone</string>
+        <key>Region</key>
+        <string>tempZone</string>
+
+        <!-- The resource to target when uploading files -->
+        <key>Destination Resource</key>
+        <string>demoResc</string>
+
+        <!-- Must be set to native or pam_password -->
         <key>Authorization</key>
         <string>native</string>
+
+        <!-- Secure Communication Configuration -->
+
+        <!-- Must be set to CS_NEG_REFUSE, CS_NEG_DONT_CARE, or CS_NEG_REQUIRE -->
+        <key>Client Server Negotiation</key>
+        <string>CS_NEG_REFUSE</string>
+
+        <key>TLS Protocol</key>
+        <string>TLSv1.2</string>
+        <key>TLS Truststore</key>
+        <string>/absolute/path/to/jks/file</string>
+        <key>TLS Truststore Password</key>
+        <string>changeme</string>
+
+        <key>Encryption Algorithm</key>
+        <string>AES-256-CBC</string>
+        <key>Encryption Key Size</key>
+        <string>32</string>
+        <key>Encryption Salt Size</key>
+        <string>8</string>
+        <key>Encryption Hash Rounds</key>
+        <string>16</string>
     </dict>
 </plist>
