@@ -30,15 +30,15 @@ import java.util.Map;
 @AutoService(Protocol.class)
 public final class IRODSProtocol extends AbstractProtocol {
 
-    public static final String CLIENT_SERVER_NEGOTIATION = "client_server_negotiation";
-    public static final String TLS_PROTOCOL              = "tls_protocol";
-    public static final String TLS_TRUSTSTORE            = "tls_truststore";
-    public static final String TLS_TRUSTSTORE_PASSWORD   = "tls_truststore_password";
-    public static final String ENCRYPTION_ALGORITHM      = "encryption_algorithm";
-    public static final String ENCRYPTION_KEY_SIZE       = "encryption_key_size";
-    public static final String ENCRYPTION_SALT_SIZE      = "encryption_salt_size";
-    public static final String ENCRYPTION_HASH_ROUNDS    = "encryption_hash_rounds";
-    public static final String DESTINATION_RESOURCE      = "destination_resource";
+    public static final String CLIENT_SERVER_NEGOTIATION = "Client Server Negotiation";
+    public static final String TLS_PROTOCOL              = "TLS Protocol";
+    public static final String TLS_TRUSTSTORE            = "TLS Truststore";
+    public static final String TLS_TRUSTSTORE_PASSWORD   = "TLS Truststore Password";
+    public static final String ENCRYPTION_ALGORITHM      = "Encryption Algorithm";
+    public static final String ENCRYPTION_KEY_SIZE       = "Encryption Key Size";
+    public static final String ENCRYPTION_SALT_SIZE      = "Encryption Salt Size";
+    public static final String ENCRYPTION_HASH_ROUNDS    = "Encryption Hash Rounds";
+    public static final String DESTINATION_RESOURCE      = "Destination Resource";
 
     @Override
     public String getIdentifier() {

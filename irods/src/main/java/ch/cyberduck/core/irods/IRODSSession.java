@@ -114,14 +114,22 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         final ConnectionOptions options = new ConnectionOptions();
 
         options.clientServerNegotiation = preferences.getProperty(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
+        log.debug("options.clientServerNegotiation = [{}]", options.clientServerNegotiation);
         options.sslProtocol = preferences.getProperty(IRODSProtocol.TLS_PROTOCOL);
+        log.debug("options.sslProtocol = [{}]", options.sslProtocol);
         options.sslTruststore = preferences.getProperty(IRODSProtocol.TLS_TRUSTSTORE);
+        log.debug("options.sslTruststore = [{}]", options.sslTruststore);
         options.sslTruststorePassword = preferences.getProperty(IRODSProtocol.TLS_TRUSTSTORE_PASSWORD);
+        log.debug("options.sslTruststorePassword = [{}]", options.sslTruststorePassword);
 
         options.encryptionAlgorithm = preferences.getProperty(IRODSProtocol.ENCRYPTION_ALGORITHM);
+        log.debug("options.encryptionAlgorithm = [{}]", options.encryptionAlgorithm);
         options.encryptionKeySize = preferences.getInteger(IRODSProtocol.ENCRYPTION_KEY_SIZE);
+        log.debug("options.encryptionKeySize = [{}]", options.encryptionKeySize);
         options.encryptionSaltSize = preferences.getInteger(IRODSProtocol.ENCRYPTION_SALT_SIZE);
+        log.debug("options.encryptionSaltSize = [{}]", options.encryptionSaltSize);
         options.encryptionNumHashRounds = preferences.getInteger(IRODSProtocol.ENCRYPTION_HASH_ROUNDS);
+        log.debug("options.encryptionNumHashRounds = [{}]", options.encryptionNumHashRounds);
 
 //        options.tcpReceiveBufferSize = preferences.getInteger(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
 //        options.tcpSendBufferSize = preferences.getInteger(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);

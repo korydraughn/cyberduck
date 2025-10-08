@@ -68,5 +68,7 @@
         <string>8</string>
         <key>Encryption Hash Rounds</key>
         <string>16</string>
+
+        <!-- TODO: Options for buffer sizes, checksums, etc. -->
     </dict>
 </plist>
