@@ -39,8 +39,7 @@ public class IRODSDirectoryFeature implements Directory<Void> {
     public Path mkdir(final Write<Void> writer, final Path folder, final TransferStatus status) throws BackgroundException {
         try {
             final IRODSConnection conn = session.getClient();
-            String path = folder.getAbsolute();
-            IRODSFilesystem.createCollection(conn.getRcComm(), path);
+            IRODSFilesystem.createCollection(conn.getRcComm(), folder.getAbsolute());
             return folder;
         }
         catch(IOException | IRODSFilesystemException e) {

@@ -28,17 +28,17 @@ public final class IRODSChecksumUtils {
     private static final Logger log = LogManager.getLogger(IRODSChecksumUtils.class);
 
     public static Checksum toChecksum(String irodsChecksum) {
-        if(StringUtils.isEmpty(irodsChecksum)) {
+        if(StringUtils.isBlank(irodsChecksum)) {
             return Checksum.NONE;
         }
 
         int colon = irodsChecksum.indexOf(':');
-        if (-1 == colon) {
+        if(-1 == colon) {
             log.debug("no hash algorithm prefix found in iRODS checksum. ignoring checksum.");
             return Checksum.NONE;
         }
 
-        if (colon + 1 >= irodsChecksum.length()) {
+        if(colon + 1 >= irodsChecksum.length()) {
             log.debug("iRODS checksum may be corrupted. ignoring checksum.");
             return Checksum.NONE;
         }

@@ -35,8 +35,6 @@ import ch.cyberduck.core.features.Read;
 import ch.cyberduck.core.features.Timestamp;
 import ch.cyberduck.core.features.Touch;
 import ch.cyberduck.core.features.Upload;
-import ch.cyberduck.core.preferences.HostPreferencesFactory;
-import ch.cyberduck.core.preferences.PreferencesReader;
 import ch.cyberduck.core.proxy.ProxyFinder;
 import ch.cyberduck.core.shared.DefaultPathHomeFeature;
 import ch.cyberduck.core.shared.DelegatingHomeFeature;
@@ -53,12 +51,10 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.irods.irods4j.authentication.AuthPlugin;
 import org.irods.irods4j.authentication.NativeAuthPlugin;
-import org.irods.irods4j.authentication.PamInteractiveAuthPlugin;
 import org.irods.irods4j.authentication.PamPasswordAuthPlugin;
 import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.connection.QualifiedUsername;
 import org.irods.irods4j.low_level.api.IRODSApi;
-import org.irods.irods4j.low_level.api.IRODSApi.ConnectionOptions;
 
 import java.text.MessageFormat;
 
@@ -90,7 +86,7 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
 
             log.debug("iRODS server: host=[{}], port=[{}], username=[{}], zone=[{}]", host, port, username, zone);
 
-            IRODSConnection conn = new IRODSConnection(configure());
+            IRODSConnection conn = new IRODSConnection(IRODSConnectionUtils.initConnectionOptions(this));
             conn.connect(host, port, new QualifiedUsername(username, zone));
             log.debug("connected to iRODS server successfully.");
 
@@ -100,7 +96,7 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
             final String host = this.host.getHostname();
             final int port = this.host.getPort();
             final String username = this.host.getCredentials().getUsername();
-            final String zone = this.host.getRegion();
+            final String zone = getRegion();
 
             String msg = String.format("Could not connect to iRODS server at [%s:%d] as [%s#%s]: %s",
                     host, port, username, zone, e.getMessage());
@@ -108,53 +104,11 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
         }
     }
 
-    protected ConnectionOptions configure() {
-        log.debug("configuring iRODS connection.");
-        final PreferencesReader preferences = HostPreferencesFactory.get(host);
-        final ConnectionOptions options = new ConnectionOptions();
-
-        options.clientServerNegotiation = preferences.getProperty(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
-        log.debug("options.clientServerNegotiation = [{}]", options.clientServerNegotiation);
-        options.sslProtocol = preferences.getProperty(IRODSProtocol.TLS_PROTOCOL);
-        log.debug("options.sslProtocol = [{}]", options.sslProtocol);
-        options.sslTruststore = preferences.getProperty(IRODSProtocol.TLS_TRUSTSTORE);
-        log.debug("options.sslTruststore = [{}]", options.sslTruststore);
-        options.sslTruststorePassword = preferences.getProperty(IRODSProtocol.TLS_TRUSTSTORE_PASSWORD);
-        log.debug("options.sslTruststorePassword = [{}]", options.sslTruststorePassword);
-
-        options.encryptionAlgorithm = preferences.getProperty(IRODSProtocol.ENCRYPTION_ALGORITHM);
-        log.debug("options.encryptionAlgorithm = [{}]", options.encryptionAlgorithm);
-        options.encryptionKeySize = preferences.getInteger(IRODSProtocol.ENCRYPTION_KEY_SIZE);
-        log.debug("options.encryptionKeySize = [{}]", options.encryptionKeySize);
-        options.encryptionSaltSize = preferences.getInteger(IRODSProtocol.ENCRYPTION_SALT_SIZE);
-        log.debug("options.encryptionSaltSize = [{}]", options.encryptionSaltSize);
-        options.encryptionNumHashRounds = preferences.getInteger(IRODSProtocol.ENCRYPTION_HASH_ROUNDS);
-        log.debug("options.encryptionNumHashRounds = [{}]", options.encryptionNumHashRounds);
-
-//        options.tcpReceiveBufferSize = preferences.getInteger(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
-//        options.tcpSendBufferSize = preferences.getInteger(IRODSProtocol.CLIENT_SERVER_NEGOTIATION);
-
-        return options;
-    }
-
     protected String getRegion() {
         if(StringUtils.contains(host.getRegion(), ':')) {
             return StringUtils.splitPreserveAllTokens(host.getRegion(), ':')[0];
         }
         return host.getRegion();
-    }
-
-    protected String getResource() {
-        final PreferencesReader preferences = HostPreferencesFactory.get(host);
-        final String resc = preferences.getProperty(IRODSProtocol.DESTINATION_RESOURCE);
-        if (StringUtils.isNotEmpty(resc)) {
-            return resc;
-        }
-        // Fallback to old way of retrieving destination resource.
-        if(StringUtils.contains(host.getRegion(), ':')) {
-            return StringUtils.splitPreserveAllTokens(host.getRegion(), ':')[1];
-        }
-        return StringUtils.EMPTY;
     }
 
     @Override
@@ -173,9 +127,6 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
             }
             else if("pam_password".equals(authScheme)) {
                 plugin = new PamPasswordAuthPlugin(true);
-            }
-            else if("pam_interactive".equals(authScheme)) {
-                plugin = new PamInteractiveAuthPlugin(true);
             }
             else {
                 throw new IllegalArgumentException(String.format("Authentication scheme not recognized: %s", authScheme));

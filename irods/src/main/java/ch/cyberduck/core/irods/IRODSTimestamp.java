@@ -45,21 +45,20 @@ public class IRODSTimestamp implements Timestamp {
 
     @Override
     public void setTimestamp(final Path file, final TransferStatus status) throws BackgroundException {
-        final String logicalPath = file.getAbsolute();
-
         if(status.getModified() != null) {
-            long seconds = Timestamp.toSeconds(status.getModified());
+            final String logicalPath = file.getAbsolute();
+            final long seconds = Timestamp.toSeconds(status.getModified());
             log.debug("setting timestamp for [{}] to [{}] seconds (since epoch).", logicalPath, seconds);
 
             try {
                 ObjectStatus objectStatus = IRODSFilesystem.status(session.getClient().getRcComm(), logicalPath);
                 boolean updated = true;
 
-                if (IRODSFilesystem.isDataObject(objectStatus)) {
+                if(IRODSFilesystem.isDataObject(objectStatus)) {
                     long replicaNumber = getReplicaNumberOfLatestGoodReplica(logicalPath);
                     IRODSReplicas.lastWriteTime(session.getClient().getRcComm(), logicalPath, replicaNumber, seconds);
                 }
-                else if (IRODSFilesystem.isCollection(objectStatus)) {
+                else if(IRODSFilesystem.isCollection(objectStatus)) {
                     IRODSFilesystem.lastWriteTime(session.getClient().getRcComm(), logicalPath, seconds);
                 }
                 else {
@@ -67,7 +66,7 @@ public class IRODSTimestamp implements Timestamp {
                     log.debug("path does not point to a data object or collection. cannot update timestamp.");
                 }
 
-                if (updated) {
+                if(updated) {
                     log.debug("timestamp set to [{}] seconds (since epoch) on [{}] successfully.", seconds, logicalPath);
                 }
             }

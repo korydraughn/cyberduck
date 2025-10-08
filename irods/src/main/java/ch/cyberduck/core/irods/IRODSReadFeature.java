@@ -48,14 +48,7 @@ public class IRODSReadFeature implements Read {
                 throw new NotfoundException(logicalPath);
             }
 
-            IRODSDataObjectInputStream in;
-            String resource = session.getResource();
-            if(resource.isEmpty()) {
-                in = new IRODSDataObjectInputStream(rcComm, logicalPath);
-            }
-            else {
-                in = new IRODSDataObjectInputStream(rcComm, logicalPath, resource);
-            }
+            IRODSDataObjectInputStream in = new IRODSDataObjectInputStream(rcComm, logicalPath);
 
             if(status.isAppend() && status.getOffset() > 0) {
                 IRODSStreamUtils.seek(in, status.getOffset());

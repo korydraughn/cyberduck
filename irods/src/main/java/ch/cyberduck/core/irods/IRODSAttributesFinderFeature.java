@@ -55,7 +55,7 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
 
             ObjectStatus status = IRODSFilesystem.status(session.getClient().getRcComm(), logicalPath);
 
-            if (IRODSFilesystem.isDataObject(status)) {
+            if(IRODSFilesystem.isDataObject(status)) {
                 log.debug("data object exists in iRODS. fetching data using GenQuery2.");
                 String query = String.format(
                         "select DATA_CREATE_TIME, DATA_MODIFY_TIME, DATA_SIZE, DATA_CHECKSUM, DATA_REPL_STATUS where COLL_NAME = '%s' and DATA_NAME = '%s' order by DATA_REPL_STATUS desc, DATA_MODIFY_TIME desc",
@@ -66,9 +66,9 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
 
                 PathAttributes attrs = new PathAttributes();
 
-                if (!rows.isEmpty()) {
+                if(!rows.isEmpty()) {
                     List<String> row = rows.get(0);
-                    if ("0".equals(row.get(4)) || "1".equals(row.get(4))) {
+                    if("0".equals(row.get(4)) || "1".equals(row.get(4))) {
                         setAttributes(attrs, row);
                     }
                 }
@@ -76,7 +76,7 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
                 return attrs;
             }
 
-            if (IRODSFilesystem.isCollection(status)) {
+            if(IRODSFilesystem.isCollection(status)) {
                 log.debug("collection exists in iRODS. fetching data using GenQuery2.");
                 String query = String.format("select COLL_CREATE_TIME, COLL_MODIFY_TIME where COLL_NAME = '%s'", logicalPath);
                 log.debug("query = [{}]", query);
@@ -84,7 +84,7 @@ public class IRODSAttributesFinderFeature implements AttributesFinder, Attribute
 
                 PathAttributes attrs = new PathAttributes();
 
-                if (!rows.isEmpty()) {
+                if(!rows.isEmpty()) {
                     // Collections do not have the same properties as data objects
                     // so fill in the gaps to satisfy requirements of setAttributes.
                     List<String> row = rows.get(0);
