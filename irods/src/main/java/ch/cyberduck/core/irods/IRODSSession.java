@@ -49,9 +49,6 @@ import ch.cyberduck.core.threading.CancelCallback;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.irods.irods4j.authentication.AuthPlugin;
-import org.irods.irods4j.authentication.NativeAuthPlugin;
-import org.irods.irods4j.authentication.PamPasswordAuthPlugin;
 import org.irods.irods4j.high_level.connection.IRODSConnection;
 import org.irods.irods4j.high_level.connection.QualifiedUsername;
 import org.irods.irods4j.low_level.api.IRODSApi;
@@ -119,20 +116,7 @@ public class IRODSSession extends SSLSession<IRODSConnection> {
             final Credentials credentials = host.getCredentials();
             final String password = credentials.getPassword();
 
-            final String authScheme = StringUtils.defaultIfBlank(host.getProtocol().getAuthorization(), "native");
-            log.debug("authentication scheme from configuration is [{}].", authScheme);
-            AuthPlugin plugin = null;
-            if("native".equals(authScheme)) {
-                plugin = new NativeAuthPlugin();
-            }
-            else if("pam_password".equals(authScheme)) {
-                plugin = new PamPasswordAuthPlugin(true);
-            }
-            else {
-                throw new IllegalArgumentException(String.format("Authentication scheme not recognized: %s", authScheme));
-            }
-
-            client.authenticate(plugin, password);
+            client.authenticate(IRODSConnectionUtils.newAuthPlugin(this), password);
             log.debug("authenticated with iRODS server successfully.");
         }
         catch(Exception e) {

@@ -58,6 +58,23 @@ final class IRODSConnectionUtils {
         return options;
     }
 
+    public static AuthPlugin newAuthPlugin(IRODSSession session) {
+        AuthPlugin plugin = null;
+
+        final String authScheme = StringUtils.defaultIfBlank(session.getHost().getProtocol().getAuthorization(), "native");
+        if("native".equals(authScheme)) {
+            plugin = new NativeAuthPlugin();
+        }
+        else if("pam_password".equals(authScheme)) {
+            plugin = new PamPasswordAuthPlugin(true);
+        }
+        else {
+            throw new IllegalArgumentException(String.format("Authentication scheme not recognized: %s", authScheme));
+        }
+
+        return plugin;
+    }
+
     public static IRODSConnection newConnection(IRODSSession session) throws Exception {
         String host = session.getHost().getHostname();
         int port = session.getHost().getPort();
@@ -66,7 +83,7 @@ final class IRODSConnectionUtils {
         String password = session.getHost().getCredentials().getPassword();
         IRODSConnection conn = new IRODSConnection(initConnectionOptions(session));
         conn.connect(host, port, new QualifiedUsername(username, zone));
-        conn.authenticate(new NativeAuthPlugin(), password);
+        conn.authenticate(newAuthPlugin(session), password);
         return conn;
     }
 
@@ -83,18 +100,7 @@ final class IRODSConnectionUtils {
                 new QualifiedUsername(username, zone),
                 conn -> {
                     try {
-                        final String authScheme = StringUtils.defaultIfBlank(session.getHost().getProtocol().getAuthorization(), "native");
-                        AuthPlugin plugin = null;
-                        if("native".equals(authScheme)) {
-                            plugin = new NativeAuthPlugin();
-                        }
-                        else if("pam_password".equals(authScheme)) {
-                            plugin = new PamPasswordAuthPlugin(true);
-                        }
-                        else {
-                            throw new IllegalArgumentException(String.format("Authentication scheme not recognized: %s", authScheme));
-                        }
-                        IRODSApi.rcAuthenticateClient(conn, plugin, password);
+                        IRODSApi.rcAuthenticateClient(conn, newAuthPlugin(session), password);
                         return true;
                     }
                     catch(Exception e) {
